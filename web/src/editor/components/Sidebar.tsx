@@ -19,10 +19,11 @@ export function Sidebar({ layout, visible, selected, dispatch }: Props) {
       <div className="side-head">
         <span>Frames</span>
         <span className="side-actions">
-          <button className="link" onClick={() => dispatch({ type: "setAllVisible", visible: true })}>all</button>
-          <button className="link" onClick={() => dispatch({ type: "setAllVisible", visible: false })}>none</button>
+          <button className="link" onClick={() => dispatch({ type: "setAllVisible", visible: true })}>show all</button>
+          <button className="link" onClick={() => dispatch({ type: "setAllVisible", visible: false })}>hide all</button>
         </span>
       </div>
+      <p className="side-hint">Click a name to select it on the canvas. Use the switch to show or hide it on the canvas (hidden frames still export). A blue dot marks a frame you have moved.</p>
       {CATEGORIES.map((cat) => {
         const items = FRAMES.filter((f) => f.category === cat && present.has(f.key) && (gamepad || f.system !== 30));
         if (items.length === 0) return null;
@@ -34,17 +35,19 @@ export function Sidebar({ layout, visible, selected, dispatch }: Props) {
                 const on = visible[f.key] ?? f.defaultVisible;
                 return (
                   <li key={f.key} className={`${selected === f.key ? "selected" : ""} ${on ? "" : "off"}`}>
-                    <button
-                      className="eye"
-                      title={on ? "Hide on canvas" : "Show on canvas"}
-                      aria-label={on ? `Hide ${f.label}` : `Show ${f.label}`}
-                      onClick={() => dispatch({ type: "toggleVisible", key: f.key })}
-                    >
-                      {on ? "●" : "○"}
-                    </button>
-                    <button className="name" onClick={() => dispatch({ type: "select", key: f.key })}>
+                    <button className="name" title="Select on the canvas" onClick={() => dispatch({ type: "select", key: f.key })}>
                       {f.label}
                       {moved.get(f.key) && <span className="dot" title="Moved from default position" />}
+                    </button>
+                    <button
+                      className="switch"
+                      role="switch"
+                      aria-checked={on}
+                      title={on ? "Shown on canvas. Click to hide" : "Hidden on canvas. Click to show"}
+                      aria-label={`${on ? "Hide" : "Show"} ${f.label} on the canvas`}
+                      onClick={() => dispatch({ type: "toggleVisible", key: f.key })}
+                    >
+                      <span className="knob" />
                     </button>
                   </li>
                 );
