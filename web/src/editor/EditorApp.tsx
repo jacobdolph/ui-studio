@@ -8,8 +8,23 @@ import { ExportDialog, ImportDialog } from "./components/Dialogs";
 import { computeRects } from "./geometry";
 import { currentScreen, exportString, loadState, reducer, saveState } from "./store";
 
+/** Saved state, unless the page was opened from a share link (`?layout=<export string>`). */
+function initialStateFromUrl() {
+  const saved = loadState();
+  try {
+    const url = new URL(location.href);
+    const text = url.searchParams.get("layout");
+    if (!text) return saved;
+    url.searchParams.delete("layout");
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+    return reducer(saved, { type: "importString", text: text.trim(), name: url.searchParams.get("name") ?? "Shared layout" });
+  } catch {
+    return saved;
+  }
+}
+
 export function EditorApp() {
-  const [state, dispatch] = useReducer(reducer, undefined, loadState);
+  const [state, dispatch] = useReducer(reducer, undefined, initialStateFromUrl);
   const [dialog, setDialog] = useState<"import" | "export" | null>(null);
 
   const screen = useMemo(() => currentScreen(state), [state.screenId, state.uiScale]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -61,7 +76,7 @@ export function EditorApp() {
         />
         <Inspector sys={selectedSys} placed={state.selected ? rects.get(state.selected) : undefined} rects={rects} screen={screen} dispatch={dispatch} />
       </div>
-      {dialog === "import" && <ImportDialog open onClose={() => setDialog(null)} onImport={(text) => dispatch({ type: "importString", text })} />}
+      {dialog === "import" && <ImportDialog screen={screen} open onClose={() => setDialog(null)} onImport={(text) => dispatch({ type: "importString", text })} />}
       {dialog === "export" && <ExportDialog open onClose={() => setDialog(null)} text={exportString(state)} name={state.name} movedCount={movedCount} />}
     </div>
   );

@@ -18,9 +18,9 @@ export function systemLabel(sys: Pick<LayoutSystem, "system" | "systemIndex">): 
   if (!indexName) return `${schema.name} #${sys.systemIndex}`;
   const pretty = indexName.replace(/([a-z])([A-Z0-9])/g, "$1 $2");
   if (schema.label.includes("%d")) {
-    const m = indexName.match(/(\d+)$/);
-    if (m) return schema.label.replace("%d", m[1]);
-    if (indexName === "MainBar") return schema.label.replace("%d", "1");
+    // "Action Bar %d" / "Status Bar %d": the number is the system index (RightBar1 is Action Bar 4,
+    // not Action Bar 1). Named bars (StanceBar, PetActionBar, …) keep their own name.
+    if (/^(MainBar|Bar\d+|RightBar\d+|ExtraBar\d+|StatusTrackingBar\d+)$/.test(indexName)) return schema.label.replace("%d", String(sys.systemIndex));
     return pretty;
   }
   return pretty;

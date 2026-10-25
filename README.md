@@ -22,6 +22,14 @@ A free web app for building **WoW Forever** Edit Mode layouts in the browser and
 
 The footprint of a frame is an approximation; the exported string is exact.
 
+### Importing retail strings
+
+Live retail (12.x) and WoW Forever share every system id up to 25 and every per-system setting id (diffed from both clients' `EditModeManagerConstantsDocumentation.lua`). Forever inserts the end caps (26) and Group Finder (27) ahead of Loss of Control, which moves from id 26 to 28. `web/src/editmode/compat.ts` rewrites that one id when a version-2 string is imported, so a retail layout means the same thing in Forever. Frames only Forever has (end caps, totem bar, swing timers) are filled in from the preset by the game's own layout reconciliation on import.
+
+Explicit anchors only make sense on the UIParent they were made on, so importing also picks the smallest screen preset whose UI units hold every placed frame (`inferScreenId`). A layout made at 2560×1440 with the default 0.64 UI scale, for example, needs a 2133×1200 canvas.
+
+`?layout=<export string>` opens the editor with that layout (the Export dialog's "Copy share link").
+
 ## Develop
 
 ```sh

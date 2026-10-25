@@ -116,9 +116,10 @@ textarea { width: 100%; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, mono
 .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .row.end { justify-content: flex-end; }
 .error { color: var(--bad); background: #2a1616; border: 1px solid #4a2020; padding: 8px 12px; border-radius: 8px; margin-top: 8px; font-size: 13px; }
+.note { background: #10232b; border: 1px solid #16404d; color: #9fd3e6; border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 13px; grid-column: 1 / -1; }
 .warnings { background: #2b2410; border: 1px solid #4a3d14; color: var(--warn); border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 13px; grid-column: 1 / -1; }
 .import-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-.import-summary > div:not(.warnings) { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; }
+.import-summary > div:not(.warnings):not(.note) { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; }
 .import-summary .k { font-size: 11px; color: var(--muted); }
 .import-summary .v { font-weight: 600; }
 

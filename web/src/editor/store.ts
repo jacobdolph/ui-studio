@@ -6,6 +6,7 @@ import {
   type Anchor, type AnchorPoint, type Layout, type LayoutSystem,
   createLayout, decodeLayoutString, encodeLayoutString, setSetting,
 } from "../editmode/layoutString";
+import { remapRetailToForever } from "../editmode/compat";
 import { Presets, type PresetSystem } from "../editmode/schema.generated";
 import { FRAMES, frameDef, frameKey } from "../editmode/frames";
 import { type Rect, type Screen, anchorFromRect, computeRects, round1 } from "./geometry";
@@ -39,6 +40,33 @@ export function defaultUiScale(pixelHeight: number): number {
 export function uiParentSize(preset: ScreenPreset, uiScale: number): Screen {
   const height = 768 / uiScale;
   return { width: round1((preset.pixelWidth / preset.pixelHeight) * height), height: round1(height) };
+}
+
+/**
+ * Guess which screen a layout was made on. Explicit anchors to UIParent only make sense inside the
+ * UIParent the player had, so the smallest screen (in UI units) that holds every placed frame is the
+ * best guess. Candidates are the presets at the client's default UI scale; ties go to the common one.
+ * Returns null when the layout fits the given current screen already.
+ */
+export function inferScreenId(layout: Layout, current: Screen): string | null {
+  const fits = (screen: Screen) => {
+    const rects = computeRects(layout, screen, { isShown: () => true });
+    // Players do hang frames partly off an edge, so judge by the frame's centre, not its bounds.
+    for (const p of rects.values()) {
+      if (p.sys.isInDefaultPosition) continue;
+      const cx = p.rect.left + p.rect.width / 2, cy = p.rect.bottom + p.rect.height / 2;
+      if (cx < 0 || cy < 0 || cx > screen.width || cy > screen.height) return false;
+    }
+    return true;
+  };
+  if (fits(current)) return null;
+  const order = ["1080p", "1200p", "1440p", "uw1440", "suw", "4k", "steamdeck"];
+  const candidates = order
+    .map((id) => SCREEN_PRESETS.find((s) => s.id === id)!)
+    .map((preset) => ({ preset, screen: uiParentSize(preset, defaultUiScale(preset.pixelHeight)) }))
+    .sort((a, b) => a.screen.width * a.screen.height - b.screen.width * b.screen.height);
+  for (const c of candidates) if (fits(c.screen)) return c.preset.id;
+  return null;
 }
 
 export interface EditorState {
@@ -247,12 +275,17 @@ export function reducer(state: EditorState, action: Action): EditorState {
 
     case "importString": {
       const layout = decodeLayoutString(action.text);
+      // Retail strings: move Loss of Control from id 26 to Forever's 28 (see editmode/compat.ts).
+      remapRetailToForever(layout);
       // Always export as a WoW Forever string.
       layout.version = Math.max(layout.version, 5);
       layout.headerKind = "style";
       layout.grammar = "modern";
       if (layout.interfaceStyle === null) layout.interfaceStyle = 0;
-      return { ...commit(state, layout), selected: null, name: action.name ?? state.name };
+      // Switch to the screen the layout was evidently made on when it doesn't fit the current one.
+      const screenId = inferScreenId(layout, currentScreen(state)) ?? state.screenId;
+      const uiScale = screenId === state.screenId ? state.uiScale : null;
+      return { ...commit(state, layout), selected: null, name: action.name ?? state.name, screenId, uiScale };
     }
 
     case "setName":

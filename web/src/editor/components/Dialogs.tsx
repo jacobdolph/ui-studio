@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { decodeLayoutString } from "../../editmode/layoutString";
-import { summarize } from "../../editmode/describe";
-import { systemLabel } from "../../editmode/describe";
+import { summarize, systemLabel } from "../../editmode/describe";
+import { previewRetailRemaps } from "../../editmode/compat";
+import type { Screen } from "../geometry";
+import { SCREEN_PRESETS, defaultUiScale, inferScreenId, uiParentSize } from "../store";
 
 interface ImportProps {
   open: boolean;
   onClose: () => void;
   onImport: (text: string) => void;
+  /** The editor's current UIParent size, to tell the user when the layout was made for another screen. */
+  screen: Screen;
 }
 
-export function ImportDialog({ open, onClose, onImport }: ImportProps) {
+export function ImportDialog({ open, onClose, onImport, screen }: ImportProps) {
   const [text, setText] = useState("");
   const parsed = useMemo(() => {
     const t = text.trim();
@@ -24,7 +28,11 @@ export function ImportDialog({ open, onClose, onImport }: ImportProps) {
 
   if (!open) return null;
   const s = parsed?.summary;
-  const liveRetail = s && s.version <= 2 && s.unknownSystems.length > 0;
+  const remaps = parsed?.layout ? previewRetailRemaps(parsed.layout) : [];
+  const inferred = parsed?.layout ? inferScreenId(parsed.layout, screen) : null;
+  const inferredPreset = inferred ? SCREEN_PRESETS.find((p) => p.id === inferred) : null;
+  const remappedKeys = new Set(remaps.map((r) => `${r.from}/-1`));
+  const unknown = s ? s.unknownSystems.filter((k) => !remappedKeys.has(k)) : [];
   return (
     <Modal title="Import a layout string" onClose={onClose}>
       <p className="hint">
@@ -37,11 +45,22 @@ export function ImportDialog({ open, onClose, onImport }: ImportProps) {
           <div><span className="k">Format version</span><span className="v">{s.version}{s.version >= 3 ? " (WoW Forever)" : s.version === 2 ? " (retail / Classic)" : " (Dragonflight)"}</span></div>
           <div><span className="k">Systems</span><span className="v">{s.systems}</span></div>
           <div><span className="k">Moved frames</span><span className="v">{parsed.layout.systems.filter((x) => !x.isInDefaultPosition).length}</span></div>
-          {s.unknownSystems.length > 0 && (
+          {inferredPreset && (
+            <div className="note">
+              The frames only fit a {uiParentSize(inferredPreset, defaultUiScale(inferredPreset.pixelHeight)).width} × {uiParentSize(inferredPreset, defaultUiScale(inferredPreset.pixelHeight)).height} UI,
+              so the screen will switch to {inferredPreset.label} at the default UI scale ({defaultUiScale(inferredPreset.pixelHeight).toFixed(2)}). Change it in the toolbar if your monitor differs.
+            </div>
+          )}
+          {s.version <= 2 && (
+            <div className="note">
+              Retail / Classic string. Retail and Forever share every frame and setting id except Loss of Control
+              {remaps.length > 0 ? ", which will be moved from retail id 26 to Forever id 28 on import." : "."}
+              {" "}Frames Forever adds (end caps, totem bar, swing timers) will use the game's defaults.
+            </div>
+          )}
+          {unknown.length > 0 && (
             <div className="warnings">
-              {liveRetail
-                ? `This looks like a live-retail string. Retail and Forever disagree on system ids from 26 up, so ${s.unknownSystems.length} frame(s) will be dropped or mislabeled: ${s.unknownSystems.map((k) => { const [a, b] = k.split("/").map(Number); return systemLabel({ system: a, systemIndex: b === -1 ? null : b }); }).join(", ")}.`
-                : `${s.unknownSystems.length} system(s) are not known to this Forever build and will be kept as-is.`}
+              {`${unknown.length} system(s) are not known to this Forever build and will be kept as-is: ${unknown.map((k) => { const [a, b] = k.split("/").map(Number); return systemLabel({ system: a, systemIndex: b === -1 ? null : b }); }).join(", ")}.`}
             </div>
           )}
           {s.warnings.map((w, i) => <div key={i} className="warnings">{w}</div>)}
@@ -76,6 +95,10 @@ export function ExportDialog({ open, onClose, text, name, movedCount }: ExportPr
       setCopied(false);
     }
   };
+  const shareLink = `${location.origin}${location.pathname}?layout=${encodeURIComponent(text)}`;
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(shareLink); setCopied(true); } catch { setCopied(false); }
+  };
   return (
     <Modal title={`Export “${name}”`} onClose={onClose}>
       <ol className="steps">
@@ -87,6 +110,7 @@ export function ExportDialog({ open, onClose, text, name, movedCount }: ExportPr
       <div className="hint small">{text.length.toLocaleString()} characters · {movedCount} frame{movedCount === 1 ? "" : "s"} moved · WoW Forever format (version 5)</div>
       <div className="row end">
         <button onClick={onClose}>Close</button>
+        <button onClick={copyLink} title="A link that opens this layout in UI Studio">Copy share link</button>
         <button className="primary" onClick={copy}>{copied ? "Copied ✓" : "Copy to clipboard"}</button>
       </div>
     </Modal>

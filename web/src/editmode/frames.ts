@@ -272,13 +272,19 @@ add({ system: S.ArchaeologyBar, systemIndex: null, frameName: "ArcheologyDigsite
   managed: { container: "bottom", layoutIndex: 7 }, size: fixed(200, 30, "Size") });
 
 // ---- Cooldown viewers (system 20) --------------------------------------------------------
-function cooldownIcons(icon: number, defaultLimit: number, layoutIndex: number) {
+/**
+ * The game sizes a cooldown viewer by how many cooldowns the spec actually has (at least 2) and
+ * wraps rows at IconLimit, so the limit is a stride, not a count. We assume a typical spec
+ * (`typicalCount` icons) to draw a footprint; the real width varies per spec.
+ */
+function cooldownIcons(icon: number, typicalCount: number, layoutIndex: number) {
   return (get: SettingGetter): Footprint => {
     const horizontal = get("Orientation", 0) === 0;
-    const limit = get("IconLimit", defaultLimit);
+    const limit = Math.max(1, get("IconLimit", typicalCount));
+    const rows = Math.ceil(typicalCount / Math.min(limit, typicalCount));
     const scale = pct(get, "IconSize");
     const pad = get("IconPadding", 2);
-    const g = grid(limit, 1, icon * scale, pad, horizontal);
+    const g = grid(typicalCount, rows, icon * scale, pad, horizontal);
     void layoutIndex;
     return { w: g.w, h: g.h, scale: 1 };
   };
