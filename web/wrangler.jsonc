@@ -1,0 +1,8 @@
+{
+  // Cloudflare Pages config. With the Git integration, set: root directory `web`,
+  // build command `npm run build`, output directory `dist`. Or deploy manually:
+  //   npm run build && npx wrangler pages deploy
+  "name": "ui-studio",
+  "pages_build_output_dir": "dist",
+  "compatibility_date": "2026-10-01"
+}
