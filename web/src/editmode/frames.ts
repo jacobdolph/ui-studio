@@ -25,6 +25,8 @@ export interface Footprint {
   h: number;
   /** Frame scale applied by its size setting (offsets in the string are at scale 1). */
   scale: number;
+  /** Button/icon grid the game draws inside the frame, when known (used by the canvas art). */
+  grid?: { cols: number; rows: number };
 }
 
 /** Reads a setting's *display* value (what GetSettingValue returns in Lua), or a fallback. */
@@ -100,14 +102,16 @@ function pct(get: SettingGetter, name: string, fallback = 100): number {
 }
 
 /** Grid of `count` cells of `cell` px laid out `rows` deep with `pad` between cells. */
-function grid(count: number, rows: number, cell: number, pad: number, horizontal: boolean): { w: number; h: number } {
+function grid(count: number, rows: number, cell: number, pad: number, horizontal: boolean): { w: number; h: number; cols: number; rows: number } {
   const n = Math.max(1, count);
   const r = Math.max(1, Math.min(rows, n));
   const stride = Math.ceil(n / r);
   const actualRows = Math.ceil(n / stride);
   const along = stride * cell + (stride - 1) * pad;
   const across = actualRows * cell + (actualRows - 1) * pad;
-  return horizontal ? { w: along, h: across } : { w: across, h: along };
+  return horizontal
+    ? { w: along, h: across, cols: stride, rows: actualRows }
+    : { w: across, h: along, cols: actualRows, rows: stride };
 }
 
 function actionBar(index: number): (get: SettingGetter) => Footprint {
@@ -213,19 +217,29 @@ add({ system: S.ExtraAbilities, systemIndex: null, frameName: "ExtraAbilityConta
   managed: { container: "bottom", layoutIndex: 15 }, size: fixed(76, 76) });
 
 // ---- Aura frames (system 6) --------------------------------------------------------------
-function auraSize(limitSetting: string, defaultLimit: number, rows: number) {
+/**
+ * Aura frames the way Edit Mode draws them (BuffFrame.lua `AuraFrameMixin:UpdateSize`): every example
+ * icon is shown (`maxAuras`), wrapped at the Icon Limit, each icon counted as button + padding, the
+ * BuffFrame's collapse button (15 x 30) added along the orientation, and the whole frame scaled by
+ * Icon Size.
+ */
+function auraSize(limitSetting: string, defaultLimit: number, maxAuras: number, hasCollapseButton: boolean) {
   return (get: SettingGetter): Footprint => {
     const horizontal = get("Orientation", 0) === 0;
-    const limit = get(limitSetting, defaultLimit);
+    const perRow = Math.max(1, Math.round(get(limitSetting, defaultLimit)));
+    const lines = Math.ceil(maxAuras / perRow);
     const scale = pct(get, "IconSize");
-    const pad = get("IconPadding", 5);
-    const g = grid(limit * rows, rows, 30 * scale, pad, horizontal);
-    return { w: g.w + (horizontal ? 15 : 0), h: g.h + (horizontal ? 0 : 15), scale: 1 };
+    const cellSize = 30 + get("IconPadding", 5);
+    const along = cellSize * perRow + (hasCollapseButton ? (horizontal ? 15 : 30) : 0);
+    const across = cellSize * lines;
+    return horizontal
+      ? { w: along * scale, h: across * scale, scale: 1, grid: { cols: perRow, rows: lines } }
+      : { w: across * scale, h: along * scale, scale: 1, grid: { cols: lines, rows: perRow } };
   };
 }
-add({ system: S.AuraFrame, systemIndex: 1, frameName: "BuffFrame", label: "Buffs", short: "Buffs", category: "Auras & Cooldowns", defaultVisible: true, size: auraSize("IconLimitBuffFrame", 11, 2) });
-add({ system: S.AuraFrame, systemIndex: 2, frameName: "DebuffFrame", label: "Debuffs", short: "Debuffs", category: "Auras & Cooldowns", defaultVisible: true, size: auraSize("IconLimitDebuffFrame", 8, 1) });
-add({ system: S.AuraFrame, systemIndex: 3, frameName: "ExternalDefensivesFrame", label: "External Defensives", short: "Ext. Defensives", category: "Auras & Cooldowns", defaultVisible: false, size: auraSize("IconLimitBuffFrame", 4, 1) });
+add({ system: S.AuraFrame, systemIndex: 1, frameName: "BuffFrame", label: "Buffs", short: "Buffs", category: "Auras & Cooldowns", defaultVisible: true, size: auraSize("IconLimitBuffFrame", 11, 32, true) });
+add({ system: S.AuraFrame, systemIndex: 2, frameName: "DebuffFrame", label: "Debuffs", short: "Debuffs", category: "Auras & Cooldowns", defaultVisible: true, size: auraSize("IconLimitDebuffFrame", 16, 16, false) });
+add({ system: S.AuraFrame, systemIndex: 3, frameName: "ExternalDefensivesFrame", label: "External Defensives", short: "Ext. Defensives", category: "Auras & Cooldowns", defaultVisible: false, size: auraSize("IconLimitBuffFrame", 5, 5, false) });
 
 add({ system: S.TalkingHeadFrame, systemIndex: null, frameName: "TalkingHeadFrame", label: "Talking Head", short: "Talking Head", category: "Misc", defaultVisible: false,
   managed: { container: "bottom", layoutIndex: 8 }, size: fixed(570, 155) });
@@ -286,7 +300,7 @@ function cooldownIcons(icon: number, typicalCount: number, layoutIndex: number, 
     const pad = get("IconPadding", 2);
     const g = grid(typicalCount, rows, icon * scale, pad, horizontal);
     void layoutIndex;
-    return { w: g.w, h: g.h, scale: 1 };
+    return { w: g.w, h: g.h, scale: 1, grid: { cols: g.cols, rows: g.rows } };
   };
 }
 add({ system: S.CooldownViewer, systemIndex: 1, frameName: "EssentialCooldownViewer", label: "Essential Cooldowns", short: "Essential CDs", category: "Auras & Cooldowns", defaultVisible: true,

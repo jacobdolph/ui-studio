@@ -79,3 +79,18 @@ describe("systemLabel", () => {
     expect(systemLabel({ system: 15, systemIndex: 2 })).toBe("Status Bar 2");
   });
 });
+
+describe("aura frames", () => {
+  it("wrap example icons at the icon limit like Edit Mode does", () => {
+    const st = reducer(initialState(), { type: "importString", text: RETAIL });
+    const rects = computeRects(st.layout, currentScreen(st), { isShown: () => true });
+    // Buffs: limit 11, padding 5, icon size 80%: 32 example buffs -> 3 rows of 11, plus the 15-wide collapse button
+    const buffs = rects.get("6/1")!;
+    expect(buffs.footprint.grid).toEqual({ cols: 11, rows: 3 });
+    expect(buffs.rect.width).toBeCloseTo((35 * 11 + 15) * 0.8, 3);
+    expect(buffs.rect.height).toBeCloseTo(35 * 3 * 0.8, 3);
+    // Debuffs: limit 16 -> all 16 on one row
+    const debuffs = rects.get("6/2")!;
+    expect(debuffs.footprint.grid).toEqual({ cols: 16, rows: 1 });
+  });
+});

@@ -167,9 +167,9 @@ function FrameArt({ placed, zoom }: { placed: Placed; zoom: number }) {
     // Button grid: approximate cells from footprint.
     const cell = (def.system === 0 ? (def.systemIndex === 11 || def.systemIndex === 12 || def.systemIndex === 13 ? 30 : 45) : def.system === 6 ? 30 : def.systemIndex === 1 ? 50 : def.systemIndex === 2 ? 30 : 40) * footprint.scale * zoom;
     if (cell < 5) return null;
-    const cols = Math.max(1, Math.round(w / (cell + 2 * zoom)));
-    const rows = Math.max(1, Math.round(h / (cell + 2 * zoom)));
-    if (cols * rows > 64) return null;
+    const cols = footprint.grid?.cols ?? Math.max(1, Math.round(w / (cell + 2 * zoom)));
+    const rows = footprint.grid?.rows ?? Math.max(1, Math.round(h / (cell + 2 * zoom)));
+    if (cols * rows > 128 || w / cols < 4 || h / rows < 4) return null;
     return (
       <div className="cells" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {Array.from({ length: cols * rows }, (_, i) => <i key={i} />)}
