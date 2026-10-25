@@ -4,7 +4,7 @@ A free web app for building **WoW Forever** Edit Mode layouts in the browser and
 
 | Folder | What |
 | --- | --- |
-| `web/` | Vite + React + TypeScript single-page app, deployed to Cloudflare Pages |
+| `web/` | Vite + React + TypeScript single-page app, deployed to GitHub Pages |
 | `addon/` | Companion Lua addon (placeholder for now) |
 
 ## Status
@@ -46,6 +46,6 @@ Regenerate the enum/setting schema from Blizzard's FrameXML (branch `forever` of
 npm run gen:schema -- /path/to/wow-ui-source --flavor camelot --strings /path/to/enUS.lua
 ```
 
-## Deploy (Cloudflare Pages)
+## Deploy (GitHub Pages)
 
-Connect the repo, set root directory `web`, build command `npm run build`, output directory `dist`. Or `cd web && npm run build && npx wrangler pages deploy`.
+Every push to `main` runs `.github/workflows/deploy.yml`: lint, tests, `vite build` with `BASE_PATH=/ui-studio/`, then publish `web/dist` to GitHub Pages at https://jacobdolph.github.io/ui-studio/. The Vite `base` comes from `BASE_PATH`, so a local build and dev server still serve from `/`.
