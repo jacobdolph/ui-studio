@@ -277,10 +277,10 @@ add({ system: S.ArchaeologyBar, systemIndex: null, frameName: "ArcheologyDigsite
  * wraps rows at IconLimit, so the limit is a stride, not a count. We assume a typical spec
  * (`typicalCount` icons) to draw a footprint; the real width varies per spec.
  */
-function cooldownIcons(icon: number, typicalCount: number, layoutIndex: number) {
+function cooldownIcons(icon: number, typicalCount: number, layoutIndex: number, useLimit = true) {
   return (get: SettingGetter): Footprint => {
     const horizontal = get("Orientation", 0) === 0;
-    const limit = Math.max(1, get("IconLimit", typicalCount));
+    const limit = useLimit ? Math.max(1, get("IconLimit", typicalCount)) : typicalCount;
     const rows = Math.ceil(typicalCount / Math.min(limit, typicalCount));
     const scale = pct(get, "IconSize");
     const pad = get("IconPadding", 2);
@@ -294,7 +294,9 @@ add({ system: S.CooldownViewer, systemIndex: 1, frameName: "EssentialCooldownVie
 add({ system: S.CooldownViewer, systemIndex: 2, frameName: "UtilityCooldownViewer", label: "Utility Cooldowns", short: "Utility CDs", category: "Auras & Cooldowns", defaultVisible: true,
   managed: { container: "bottom", layoutIndex: 14 }, size: cooldownIcons(30, 8, 14) });
 add({ system: S.CooldownViewer, systemIndex: 3, frameName: "BuffIconCooldownViewer", label: "Tracked Buffs (Icons)", short: "Buff Icons", category: "Auras & Cooldowns", defaultVisible: true,
-  managed: { container: "bottom", layoutIndex: 12 }, size: cooldownIcons(40, 8, 12) });
+  // Tracked buffs only show while active, so in Edit Mode the game draws the 2-item minimum. Its
+  // settings panel has no Icon Limit control, so a stored limit is ignored.
+  managed: { container: "bottom", layoutIndex: 12 }, size: cooldownIcons(40, 2, 12, false) });
 add({ system: S.CooldownViewer, systemIndex: 4, frameName: "BuffBarCooldownViewer", label: "Tracked Buffs (Bars)", short: "Buff Bars", category: "Auras & Cooldowns", defaultVisible: true,
   size: (get) => ({ w: 220 * pct(get, "BarWidthScale"), h: 3 * 30 + 2 * get("IconPadding", 2), scale: pct(get, "IconSize") }) });
 
