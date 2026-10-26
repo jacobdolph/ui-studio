@@ -1,6 +1,7 @@
 import { Presets } from "../../editmode/schema.generated";
 import { SCREEN_PRESETS, defaultUiScale, type EditorState, type Action } from "../store";
 import type { Screen } from "../geometry";
+import { MusicToggle } from "./MusicToggle";
 
 interface Props {
   state: EditorState;
@@ -67,6 +68,7 @@ export function Toolbar({ state, screen, dispatch, onImport, onExport }: Props) 
       </select>
       <button onClick={() => dispatch({ type: "undo" })} disabled={state.past.length === 0} title="Undo (Ctrl+Z)">Undo</button>
       <button onClick={() => dispatch({ type: "redo" })} disabled={state.future.length === 0} title="Redo (Ctrl+Shift+Z)">Redo</button>
+      <MusicToggle />
       <button onClick={onImport}>Import</button>
       <button className="primary" onClick={onExport}>Export</button>
     </header>

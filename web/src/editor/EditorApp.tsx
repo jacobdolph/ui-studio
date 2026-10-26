@@ -76,6 +76,11 @@ export function EditorApp() {
         />
         <Inspector sys={selectedSys} placed={state.selected ? rects.get(state.selected) : undefined} rects={rects} screen={screen} dispatch={dispatch} />
       </div>
+      <footer className="credits">
+        UI Studio is a free fan project and is not affiliated with Blizzard Entertainment. Music made with{" "}
+        <a href="https://suno.com/" target="_blank" rel="noreferrer">Suno</a>. Source on{" "}
+        <a href="https://github.com/jacobdolph/ui-studio" target="_blank" rel="noreferrer">GitHub</a>.
+      </footer>
       {dialog === "import" && <ImportDialog screen={screen} open onClose={() => setDialog(null)} onImport={(text) => dispatch({ type: "importString", text })} />}
       {dialog === "export" && <ExportDialog open onClose={() => setDialog(null)} text={exportString(state)} name={state.name} movedCount={movedCount} />}
     </div>
